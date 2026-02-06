@@ -1,11 +1,19 @@
-/* A textarea to accept a SQL query to retrieve data and
- a SUBMIT button to send that query onto the server via GET ( if we are reading). 
- Then the client displays the response received from the server.  
- The purpose of this text area is to let visitors of your website run SQl statements
- to ready from that table. 
- However they may enter any SQL statements and it is your responsibility to ensure that
- harmful statements such as DELETE, DROP, CREATE or UPDATE cannot be executed. 
- This protection must be enforced on the server side by configuring/programming the 
- database user with restricted privileges — for example, a read-only / SELECT-only role.
-This is the only way that if a malicious or accidental SQL command is submitted, 
-the database user should not have permission to modify or delete data. */
+const mysql = require('mysql');
+
+// creating connection
+const con = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'comp4537'
+});
+// connecting to MySQL to run DB query
+con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected to MySQL database!");
+    let sql = "INSERT INTO patient (name, dateOfBirth) VALUES ('Sara Brown', '1901-01-01'), ('John Smith', '1941-01-01'), ('Jack Ma', '1961-01-30'), ('Elon Musk', '1999-01-01')";
+    con.query(sql, function (err, result) {
+        if (err) throw err;
+        console.log("Number of records inserted: " + result.affectedRows);
+    });
+});
