@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server 1</title>
+    <title>Lab 5</title>
 </head>
 <body>
-    <h1>Welcome to Server 1</h1>
-    <!--Need to create an INSERT button to insert 
-    the following rows of data into a mySQL users DB -->
-    
-    <!-- name, date_of_birth 
-    'Sara Brown', '1901-01-01'
-    'John Smith', '1941-01-01'
-    'Jack Ma', '1961-01-30'
-    'Elon Musk', '1999-01-01' -->
 
-    
-    
-    <!-- If the user presses the button multiple times,
-    your app shall generate those rows multiple times and
-    your table grows. The client displays a response from the server too 
-    Note:
-    Your nodejs script creates such table (above ) every time they don't exist
-    ( every time the user presses the insert button described below, your script
-    has to first check if the table exists, otherwise it has to recreate it .-->
-    <div id="insertButton-container"></div>
+    <h1>Lab 5</h1>
+    <div>
+        <h3>Insert data.</h3>
+        <p>Checks for table existence (InnoDB) and inserts data.</p>
+        <button id="insert-btn"></button> 
+    </div>
 
-    <script src="../server1/js/insertion.js"></script>
+    <br>
+    <div>
+        <h3>Query</h3>
+        <p>Enter a SQL statement.</p>
+        <textarea id="sql-query"></textarea> <br>
+        <button id="query-btn"></button> </div>
+
+    <br>
+    <div>
+        <h3>Server Response</h3>
+        <div id="response-area"></div>
+    </div>
+
+    <script src="js/client.js"></script>
 </body>
 </html>
