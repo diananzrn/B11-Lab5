@@ -1,4 +1,4 @@
-export const STRINGS = {
+const STRINGS = {
     title: "Lab 5",
     insertBtn: "Insert Default Patients",
     placeholder: "SELECT * FROM patient",
