@@ -1,21 +1,24 @@
 const http = require('http');
 const url = require('url');
-const mysql = require('mysql');
+const mysql = require('mysql2');
+const fs = require('fs');
+require('dotenv').config();
 
-// creating connection
-const writeToDB = mysql.createConnection({
-    host: 'url_of_mysql_server',
-    user: 'root',
-    password: 'admin_password',
-    database: 'comp4537'
-});
+const caCert = fs.readFileSync('ca-certificate.crt');
 
-const readFromDB = mysql.createConnection({
-    host: 'url_of_mysql_server',
-    user: 'readonly_user',
-    password: 'readonly_password',
-    database: 'comp4537'
-});
+const dbConfig = {
+host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD, 
+    database: process.env.DB_NAME,
+    ssl: {
+        ca: caCert           
+    }
+};
+
+const writeToDB = mysql.createConnection(dbConfig);
+const readFromDB = mysql.createConnection(dbConfig);
 
 const PORT = 8888;
 
@@ -35,33 +38,34 @@ const server = http.createServer((req, res) => {
 
     if(req.method === 'POST' && ReqUrl.pathname === '/insert') {
 
-        let createTable = "CREATE TABLE IF NOT EXISTS patient (patientid INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), dateOfBirth DATETIME) ENGINE=InnoDB";
-        let insertData = "INSERT INTO patient (name, dateOfBirth) VALUES ('Sara Brown', '1901-01-01'), ('John Smith', '1941-01-01'), ('Jack Ma', '1961-01-30'), ('Elon Musk', '1999-01-01')";
+        const createTable = "CREATE TABLE IF NOT EXISTS patient (patientid INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), dateOfBirth DATETIME) ENGINE=InnoDB";
+        const insertData = "INSERT INTO patient (name, dateOfBirth) VALUES ('Sara Brown', '1901-01-01'), ('John Smith', '1941-01-01'), ('Jack Ma', '1961-01-30'), ('Elon Musk', '1999-01-01')";
 
         writeToDB.query(createTable, function(err) {
             if (err) {
                 res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'Error creating table: ' + err }));
+                return res.end(JSON.stringify({ error: 'Error creating table: ' + err.message }));
             }
             writeToDB.query(insertData, function(err, result) {
                 if (err) {
                     res.writeHead(500);
-                    return res.end(JSON.stringify({ error: 'Error inserting data: ' + err }));
+                    return res.end(JSON.stringify({ error: 'Error inserting data: ' + err.message }));
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ message: 'Data inserted successfully', affectedRows: result.affectedRows }));
             });
         });
 
-    } else if(req.method === 'GET' && ReqUrl.pathname.startsWith('/api/v1/sql/')) {
-
-        const userQuery = decodeURIComponent(ReqUrl.pathname.replace('/api/v1/sql/', ''));
-        userQuery = userQuery.replace(/^"|"$/g, '');
+    } 
+    // GET: Run SQL Query
+    else if(req.method === 'GET' && ReqUrl.pathname.startsWith('/api/v1/sql/')) {
+        
+        const userQuery = decodeURIComponent(ReqUrl.pathname.replace('/api/v1/sql/', '')).replace(/^"|"$/g, '');
 
         readFromDB.query(userQuery, function(err, results) {
             if (err) {
                 res.writeHead(400);
-                return res.end(JSON.stringify({ error: 'Error executing query: ' + err }));
+                return res.end(JSON.stringify({ error: 'Error executing query: ' + err.message }));
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(results));
