@@ -66,16 +66,20 @@ const server = http.createServer((req, res) => {
 
     } 
     // --- GET Request (Uses Read-Only Connection) ---
-    else if(req.method === 'GET' && ReqUrl.pathname.startsWith('/api/v1/sql/')) {
+    else if(req.method === 'GET' && ReqUrl.pathname === '/api/v1/sql/') {
         
-        // Clean the query string from the URL
-        const rawQuery = decodeURIComponent(ReqUrl.pathname.replace('/api/v1/sql/', ''));
-        // Remove surrounding quotes if sent by the client
-        const userQuery = rawQuery.replace(/^"|"$/g, '');
+        const userQuery = ReqUrl.query.q;
+
+        if (!userQuery) {
+            res.writeHead(400);
+            return res.end(JSON.stringify({ error: 'Missing SQL query parameter' }));
+        }
 
         console.log("Executing Read-Only Query:", userQuery);
 
-        readFromDB.query(userQuery, function(err, results) {
+        const cleanQuery = userQuery.replace(/^"|"$/g, '');
+
+        readFromDB.query(cleanQuery, function(err, results) {
             if (err) {
                 res.writeHead(400); 
                 return res.end(JSON.stringify({ error: 'Query Failed: ' + err.message }));

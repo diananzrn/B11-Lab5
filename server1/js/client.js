@@ -39,9 +39,9 @@ class ClientApp {
 
         this.responseArea.setText(STRINGS.runningQuery);
 
-        const encodedQuery = encodeURIComponent(`"${queryInput}"`);
+        const encodedQuery = encodeURIComponent(queryInput);
 
-        fetch(`${STRINGS.queryUrl}${encodedQuery}`, { method: 'GET' })
+        fetch(`${STRINGS.queryUrl}?q=${encodedQuery}`, { method: 'GET' })
             .then(res => res.json())
             .then(data => this.responseArea.setText(JSON.stringify(data, null, 2)))
             .catch(err => this.responseArea.setText(STRINGS.errorPrefix + err));
