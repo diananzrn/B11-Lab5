@@ -1,95 +1,130 @@
+// Dependencies
 const http = require('http');
 const url = require('url');
 const mysql = require('mysql2');
 const fs = require('fs');
+
 require('dotenv').config();
 
-const caCert = fs.readFileSync('ca-certificate.crt');
+const { writeConfig, readConfig } = require('./config_modules/configs.js');
 
-const writeConfig = {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,      
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { ca: caCert }
+// Configuration
+const PORT = 8888;
+
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const readConfig = {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_READ_USER,     
-    password: process.env.DB_READ_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { ca: caCert }
+// SQL Queries
+const QUERIES = {
+    CREATE_TABLE: `CREATE TABLE IF NOT EXISTS patient (
+        patientid INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100),
+        dateOfBirth DATETIME
+    ) ENGINE=InnoDB`,
+    INSERT_DATA: `INSERT INTO patient (name, dateOfBirth) VALUES
+        ('Sara Brown', '1901-01-01'),
+        ('John Smith', '1941-01-01'),
+        ('Jack Ma', '1961-01-30'),
+        ('Elon Musk', '1999-01-01')`,
 };
 
+// Database Connections
 const writeToDB = mysql.createConnection(writeConfig);
 const readFromDB = mysql.createConnection(readConfig);
 
-const PORT = 8888;
 
+/**
+ * Set CORS headers on response
+ */
+function setCorsHeaders(res) {
+    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+        res.setHeader(key, value);
+    });
+}
+
+/**
+ * Send JSON response with status code
+ */
+function sendJsonResponse(res, statusCode, data) {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+}
+
+/**
+ * Handle POST /insert - Create table and insert sample data
+ */
+function handleInsertRequest(req, res) {
+    writeToDB.query(QUERIES.CREATE_TABLE, (err) => {
+        if (err) {
+            return sendJsonResponse(res, 500, { error: `DB Error: ${err.message}` });
+        }
+
+        writeToDB.query(QUERIES.INSERT_DATA, (err, result) => {
+            if (err) {
+                return sendJsonResponse(res, 500, { error: `Insert Error: ${err.message}` });
+            }
+
+            sendJsonResponse(res, 200, {
+                message: 'Data inserted',
+                affectedRows: result.affectedRows,
+            });
+        });
+    });
+}
+
+/**
+ * Handle GET /api/v1/sql/ - Execute read-only query
+ */
+function handleQueryRequest(req, res, reqUrl) {
+    const userQuery = reqUrl.query.q;
+
+    if (!userQuery) {
+        return sendJsonResponse(res, 400, { error: 'Missing SQL query parameter' });
+    }
+
+    const cleanQuery = userQuery.replace(/^"|"$/g, '');
+    console.log('Executing Read-Only Query:', cleanQuery);
+
+    readFromDB.query(cleanQuery, (err, results) => {
+        if (err) {
+            return sendJsonResponse(res, 400, { error: `Query Failed: ${err.message}` });
+        }
+
+        sendJsonResponse(res, 200, results);
+    });
+}
+
+/**
+ * Handle 404 Not Found
+ */
+function handleNotFound(res) {
+    sendJsonResponse(res, 404, { error: 'Endpoint not found' });
+}
+
+// Server Setup
 const server = http.createServer((req, res) => {
-    const ReqUrl = url.parse(req.url, true);
+    const reqUrl = url.parse(req.url, true);
 
-    res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // Set CORS headers
+    setCorsHeaders(res);
 
-    if(req.method === 'OPTIONS') {
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
         return;
     }
 
-    // --- POST Request (Uses Admin Connection) ---
-    if(req.method === 'POST' && ReqUrl.pathname === '/insert') {
-        const createTable = "CREATE TABLE IF NOT EXISTS patient (patientid INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), dateOfBirth DATETIME) ENGINE=InnoDB";
-        const insertData = "INSERT INTO patient (name, dateOfBirth) VALUES ('Sara Brown', '1901-01-01'), ('John Smith', '1941-01-01'), ('Jack Ma', '1961-01-30'), ('Elon Musk', '1999-01-01')";
-
-        // Check/Create Table first
-        writeToDB.query(createTable, function(err) {
-            if (err) {
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'DB Error: ' + err.message }));
-            }
-            // Then Insert
-            writeToDB.query(insertData, function(err, result) {
-                if (err) {
-                    res.writeHead(500);
-                    return res.end(JSON.stringify({ error: 'Insert Error: ' + err.message }));
-                }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Data inserted', affectedRows: result.affectedRows }));
-            });
-        });
-
-    } 
-    // --- GET Request (Uses Read-Only Connection) ---
-    else if(req.method === 'GET' && ReqUrl.pathname === '/api/v1/sql/') {
-        
-        const userQuery = ReqUrl.query.q;
-
-        if (!userQuery) {
-            res.writeHead(400);
-            return res.end(JSON.stringify({ error: 'Missing SQL query parameter' }));
-        }
-
-        console.log("Executing Read-Only Query:", userQuery);
-
-        const cleanQuery = userQuery.replace(/^"|"$/g, '');
-
-        readFromDB.query(cleanQuery, function(err, results) {
-            if (err) {
-                res.writeHead(400); 
-                return res.end(JSON.stringify({ error: 'Query Failed: ' + err.message }));
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(results));
-        });
+    // Route handlers
+    if (req.method === 'POST' && reqUrl.pathname === '/insert') {
+        handleInsertRequest(req, res);
+    } else if (req.method === 'GET' && reqUrl.pathname === '/api/v1/sql/') {
+        handleQueryRequest(req, res, reqUrl);
     } else {
-        res.writeHead(404);
-        res.end(JSON.stringify({ error: 'Endpoint not found' }));
+        handleNotFound(res);
     }
 });
 
