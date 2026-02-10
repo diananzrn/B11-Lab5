@@ -8,6 +8,6 @@ const STRINGS = {
     runningQuery: "Running Query...",
     errorPrefix: "Error: ",
 
-    insertUrl: "http://134.209.3.125:8888/insert", 
-    queryUrl: "http://134.209.3.125:8888/api/v1/sql/"
+    insertUrl: "https://comp4537-lab4-server-xjp8.onrender.com/insert", 
+    queryUrl: "https://comp4537-lab4-server-xjp8.onrender.com/api/v1/sql/"
 }
