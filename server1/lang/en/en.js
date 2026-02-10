@@ -8,6 +8,6 @@ export const STRINGS = {
     runningQuery: "Running Query...",
     errorPrefix: "Error: ",
 
-    insertUrl: "http://localhost:8888/insert", //change later if needed
-    queryUrl: "http://localhost:8888/api/v1/sql/"
+    insertUrl: "http://134.209.3.125:8888/insert", 
+    queryUrl: "http://134.209.3.125:8888/api/v1/sql/"
 }
