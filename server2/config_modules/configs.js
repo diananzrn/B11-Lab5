@@ -4,7 +4,8 @@ class DatabaseConfig {
         this.host = process.env.DB_HOST;
         this.port = process.env.DB_PORT;
         this.database = process.env.DB_NAME;
-        this.ssl = { ca: caCert };
+        const caCert = process.env.DB_SSL_CERT || null;
+        this.ssl = caCert ? { ca: caCert } : false;
         
         if (type === 'write') {
             this.user = process.env.DB_USER;
