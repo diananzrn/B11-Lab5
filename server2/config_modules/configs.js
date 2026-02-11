@@ -1,4 +1,4 @@
-const writeConfig = {
+export const writeConfig = {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_USER,      
@@ -7,7 +7,7 @@ const writeConfig = {
     ssl: { ca: caCert }
 };
 
-const readConfig = {
+export const readConfig = {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_READ_USER,     
