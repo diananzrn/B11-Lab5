@@ -1,17 +1,30 @@
-export const writeConfig = {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,      
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { ca: caCert }
-};
+class DatabaseConfig {
+    constructor(type = 'write') {
+        this.type = type;
+        this.host = process.env.DB_HOST;
+        this.port = process.env.DB_PORT;
+        this.database = process.env.DB_NAME;
+        this.ssl = { ca: caCert };
+        
+        if (type === 'write') {
+            this.user = process.env.DB_USER;
+            this.password = process.env.DB_PASSWORD;
+        } else if (type === 'read') {
+            this.user = process.env.DB_READ_USER;
+            this.password = process.env.DB_READ_PASSWORD;
+        }
+    }
 
-export const readConfig = {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_READ_USER,     
-    password: process.env.DB_READ_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { ca: caCert }
-};
+    getConfig() {
+        return {
+            host: this.host,
+            port: this.port,
+            user: this.user,
+            password: this.password,
+            database: this.database,
+            ssl: this.ssl
+        };
+    }
+}
+
+module.exports = DatabaseConfig;
